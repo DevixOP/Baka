@@ -49,7 +49,7 @@ async def log_to_channel(bot: Bot, event_type: str, details: dict):
     now = datetime.now().strftime("%I:%M %p | %d %b")
     
     headers = {
-        "start": "🟢 <b>𝐁𝐎𝐓 𝐑𝐄-𝐃𝐄𝐏𝐋𝐎𝐘𝐄𝐃</b>",
+        "start": "🟢 <b>𝐁𝐎𝐓 𝐃𝐄𝐏𝐋𝐎𝐘𝐄𝐃</b>",
         "join": "🆕 <b>𝐍𝐄𝐖 𝐆𝐑𝐎𝐔𝐏</b>",
         "leave": "❌ <b>𝐋𝐄𝐅𝐓 𝐆𝐑𝐎𝐔𝐏</b>",
         "command": "⚠️ <b>𝐀𝐃𝐌𝐈𝐍 𝐋𝐎𝐆</b>",
