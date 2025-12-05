@@ -46,37 +46,52 @@ def get_back_keyboard():
     return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 ʙᴧᴄᴋ", callback_data="help_main")]])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    chat = update.effective_chat
-    ensure_user_exists(user)
-    track_group(chat, user)
-    
-    caption = (
-        f"👋 {stylize_text(f'Konichiwa {user.first_name}!')} (⁠≧⁠▽⁠≦⁠)\n\n"
-        f"『 <b>{BOT_NAME}</b> 』\n"
-        f"<i>{stylize_text('The Aesthetic AI-Powered RPG Bot!')}</i> 🌸\n\n"
-        f"🎮 <b>{stylize_text('Features')}:</b>\n"
-        f"⊚  <b>Ꝛᴘɢ:</b> ᴋɪʟʟ, Ꝛσʙ (100%), ᴘꝛσᴛєᴄᴛ\n"
-        f"⊚  <b>sσᴄɪᴧʟ:</b> ϻᴧꝛꝛʏ, ᴄσυᴘʟє, ᴡᴧɪғυ\n"
-        f"➻  <b>Єᴄσησϻʏ:</b> ᴄʟᴧɪϻ, sʜσᴘ, ɢɪᴠє\n"
-        f"➻  <b>ᴧɪ:</b> sᴧssʏ ᴄʜᴧᴛʙσᴛ & ᴧꝛᴛ\n\n"
-        f"✦ {stylize_text('Need Help?')}\n"
-        f"<i>{stylize_text('Click the buttons below!')}</i>"
-    )
+    try:
+        user = update.effective_user
+        chat = update.effective_chat
+        ensure_user_exists(user)
+        track_group(chat, user)
+        
+        # Aesthetic Start Text
+        caption = (
+            f"👋 {stylize_text(f'Konichiwa {user.first_name}!')} (⁠≧⁠▽⁠≦⁠)\n\n"
+            f"『 <b>{BOT_NAME}</b> 』\n"
+            f"<i>{stylize_text('The Aesthetic AI-Powered RPG Bot!')}</i> 🌸\n\n"
+            f"🎮 <b>{stylize_text('Features')}:</b>\n"
+            f"⊚  <b>Ꝛᴘɢ:</b> ᴋɪʟʟ, Ꝛσʙ (100%), ᴘꝛσᴛєᴄᴛ\n"
+            f"⊚  <b>sσᴄɪᴧʟ:</b> ϻᴧꝛꝛʏ, ᴄσυᴘʟє, ᴡᴧɪғυ\n"
+            f"➻  <b>Єᴄσησϻʏ:</b> ᴄʟᴧɪϻ, sʜσᴘ, ɢɪᴠє\n"
+            f"➻  <b>ᴧɪ:</b> sᴧssʏ ᴄʜᴧᴛʙσᴛ & ᴧꝛᴛ\n\n"
+            f"✦ {stylize_text('Need Help?')}\n"
+            f"<i>{stylize_text('Click the buttons below!')}</i>"
+        )
 
-    kb = get_start_keyboard(context.bot.username)
+        # Safe Username fetch
+        bot_un = context.bot.username if context.bot.username else "RyanBakaBot"
+        kb = get_start_keyboard(bot_un)
 
-    if update.callback_query:
-        try: await update.callback_query.message.edit_media(InputMediaPhoto(media=START_IMG_URL, caption=caption, parse_mode=ParseMode.HTML), reply_markup=kb)
-        except: await update.callback_query.message.edit_caption(caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
-    else:
-        if START_IMG_URL and START_IMG_URL.startswith("http"):
-            try: await update.message.reply_photo(photo=START_IMG_URL, caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
-            except: await update.message.reply_text(caption, parse_mode=ParseMode.HTML, reply_markup=kb)
-        else: await update.message.reply_text(caption, parse_mode=ParseMode.HTML, reply_markup=kb)
+        # 1. Handle Callback (Back Button)
+        if update.callback_query:
+            try: await update.callback_query.message.edit_media(InputMediaPhoto(media=START_IMG_URL, caption=caption, parse_mode=ParseMode.HTML), reply_markup=kb)
+            except: await update.callback_query.message.edit_caption(caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
+        
+        # 2. Handle Command (/start)
+        else:
+            if START_IMG_URL and START_IMG_URL.startswith("http"):
+                try: await update.message.reply_photo(photo=START_IMG_URL, caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
+                except: await update.message.reply_text(caption, parse_mode=ParseMode.HTML, reply_markup=kb)
+            else:
+                await update.message.reply_text(caption, parse_mode=ParseMode.HTML, reply_markup=kb)
 
-    if chat.type == ChatType.PRIVATE and not update.callback_query:
-        await log_to_channel(context.bot, "command", {"user": f"{get_mention(user)} (`{user.id}`)", "action": "Started Bot", "chat": "Private"})
+        # Logging
+        if chat.type == ChatType.PRIVATE and not update.callback_query:
+            await log_to_channel(context.bot, "command", {"user": f"{get_mention(user)} (`{user.id}`)", "action": "Started Bot", "chat": "Private"})
+            
+    except Exception as e:
+        print(f"Start Error: {e}")
+        # Last Resort Fallback
+        try: await update.message.reply_text("✨ <b>Bot is Alive!</b>\n<i>(Visuals failed to load)</i>", parse_mode=ParseMode.HTML)
+        except: pass
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_photo(
