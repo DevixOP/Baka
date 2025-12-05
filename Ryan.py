@@ -1,3 +1,4 @@
+# Copyright (c) 2025 Telegram:- @WTF_Phantom <DevixOP>
 # Location: Supaul, Bihar 
 #
 # All rights reserved.
