@@ -37,6 +37,7 @@ async def chat_member_update(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user = update.my_chat_member.from_user
     
     # Track Group & User relationship on status change
+    # Using the safe track_group from utils
     track_group(chat, user)
 
     # Case 1: Bot Added or Promoted
@@ -75,7 +76,7 @@ async def chat_member_update(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def group_tracker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Async wrapper to track groups on every message.
-    Used in Ryan.py MessageHandler.
+    Used in Ryan.py MessageHandler to prevent 'NoneType' await errors.
     """
     if update.effective_chat and update.effective_user:
         track_group(update.effective_chat, update.effective_user)
