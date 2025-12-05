@@ -23,32 +23,30 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMe
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatType
 from baka.config import BOT_NAME, START_IMG_URL, HELP_IMG_URL, SUPPORT_GROUP, SUPPORT_CHANNEL, OWNER_LINK
-from baka.utils import ensure_user_exists, get_mention, track_group, log_to_channel, SUDO_USERS
+from baka.utils import ensure_user_exists, get_mention, track_group, log_to_channel, SUDO_USERS, stylize_text
 
-# --- 🖼️ IMAGES ---
 SUDO_IMG = "https://files.catbox.moe/gyi5iu.jpg"
 
-# --- ⌨️ KEYBOARDS ---
-
+# --- 🎨 STYLED KEYBOARDS ---
 def get_start_keyboard(bot_username):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 𝐔𝐩𝐝𝐚𝐭𝐞𝐬", url=SUPPORT_CHANNEL), InlineKeyboardButton("💬 𝐒𝐮𝐩𝐩𝐨𝐫𝐭", url=SUPPORT_GROUP)],
-        [InlineKeyboardButton("➕ 𝐀𝐝𝐝 𝐌𝐞 𝐁𝐚𝐛𝐲 ➕", url=f"https://t.me/{bot_username}?startgroup=true")],
-        [InlineKeyboardButton("📖 𝐇𝐞𝐥𝐩 𝐌𝐞𝐧𝐮", callback_data="help_main"), InlineKeyboardButton("♛ 𝐎𝐰𝐧𝐞𝐫", url=OWNER_LINK)]
+        [InlineKeyboardButton("🎐 υᴘᴅᴧᴛєs", url=SUPPORT_CHANNEL), InlineKeyboardButton("☁️ sυᴘᴘσꝛᴛ", url=SUPPORT_GROUP)],
+        [InlineKeyboardButton("➕ ᴧᴅᴅ ϻє ʙᴧʙʏ ➕", url=f"https://t.me/{bot_username}?startgroup=true")],
+        [InlineKeyboardButton("🏩 ϻєηυ", callback_data="help_main"), InlineKeyboardButton("👑 σᴡηєꝛ", url=OWNER_LINK)]
     ])
 
 def get_help_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("💍 𝐒𝐨𝐜𝐢𝐚𝐥", callback_data="help_social"), InlineKeyboardButton("💰 𝐄𝐜𝐨𝐧𝐨𝐦𝐲", callback_data="help_economy")],
-        [InlineKeyboardButton("⚔️ 𝐑𝐏𝐆", callback_data="help_rpg"), InlineKeyboardButton("🧠 𝐀𝐈 & 𝐅𝐮𝐧", callback_data="help_fun")],
-        [InlineKeyboardButton("⚙️ 𝐆𝐫𝐨𝐮𝐩", callback_data="help_group"), InlineKeyboardButton("🔐 𝐒𝐮𝐝𝐨", callback_data="help_sudo")],
-        [InlineKeyboardButton("🔙 𝐁𝐚𝐜𝐤", callback_data="return_start")]
+        [InlineKeyboardButton("💞 sσᴄɪᴧʟ", callback_data="help_social"), InlineKeyboardButton("👛 Єᴄσησϻʏ", callback_data="help_economy")],
+        [InlineKeyboardButton("⚔️ Ꝛᴘɢ & ᴡᴧꝛ", callback_data="help_rpg"), InlineKeyboardButton("🧠 ᴧɪ & Ғυη", callback_data="help_fun")],
+        [InlineKeyboardButton("⛩️ ɢꝛσυᴘ", callback_data="help_group"), InlineKeyboardButton("🔐 sυᴅσ", callback_data="help_sudo")],
+        [InlineKeyboardButton("🔙 ʙᴧᴄᴋ", callback_data="return_start")]
     ])
 
 def get_back_keyboard():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 𝐁𝐚𝐜𝐤", callback_data="help_main")]])
+    return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 ʙᴧᴄᴋ", callback_data="help_main")]])
 
-# --- 🚀 COMMANDS ---
+# --- COMMANDS ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -56,17 +54,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ensure_user_exists(user)
     track_group(chat, user)
     
+    # Aesthetic Start Text
     caption = (
-        f"👋 <b>Kon'nichiwa</b> {get_mention(user)}! (⁠≧⁠▽⁠≦⁠)\n\n"
+        f"👋 {stylize_text(f'Konichiwa {user.first_name}!')} (⁠≧⁠▽⁠≦⁠)\n\n"
         f"『 <b>{BOT_NAME}</b> 』\n"
-        f"<i>The Aesthetic AI-Powered RPG Bot!</i> 🌸\n\n"
-        f"🎮 <b>𝐅𝐞𝐚𝐭𝐮𝐫𝐞𝐬:</b>\n"
-        f"‣ <b>RPG:</b> Kill, Rob (100%), Protect\n"
-        f"‣ <b>Social:</b> Marry, Couple\n"
-        f"‣ <b>Economy:</b> Claim, Give\n"
-        f"‣ <b>AI:</b> Sassy Chatbot\n\n"
-        f"💭 <b>𝐍𝐞𝐞𝐝 𝐇𝐞𝐥𝐩?</b>\n"
-        f"Click the buttons below!\n"
+        f"<i>{stylize_text('The Aesthetic AI-Powered RPG Bot!')}</i> 🌸\n\n"
+        f"🎮 <b>{stylize_text('Features')}:</b>\n"
+        f"⊚  <b>Ꝛᴘɢ:</b> ᴋɪʟʟ, Ꝛσʙ (100%), ᴘꝛσᴛєᴄᴛ\n"
+        f"⊚  <b>sσᴄɪᴧʟ:</b> ϻᴧꝛꝛʏ, ᴄσυᴘʟє, ᴡᴧɪғυ\n"
+        f"➻  <b>Єᴄσησϻʏ:</b> ᴄʟᴧɪϻ, sʜσᴘ, ɢɪᴠє\n"
+        f"➻  <b>ᴧɪ:</b> sᴧssʏ ᴄʜᴧᴛʙσᴛ & ᴧꝛᴛ\n\n"
+        f"💭 <b>{stylize_text('Need Help?')}</b>\n"
+        f"<i>{stylize_text('Click the buttons below!')}</i>"
     )
 
     kb = get_start_keyboard(context.bot.username)
@@ -86,12 +85,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_photo(
         photo=HELP_IMG_URL,
-        caption=f"📖 <b>{BOT_NAME} 𝐂𝐨𝐦𝐦𝐚𝐧𝐝 𝐃𝐢𝐚𝐫𝐲</b> 🌸\n\n<i>Select a category below to explore all features!</i>",
-        parse_mode=ParseMode.HTML,
-        reply_markup=get_help_keyboard()
+        caption=f"📖 <b>{BOT_NAME} 𝐃𝐢𝐚𝐫𝐲</b> 🌸\n\n<i>{stylize_text('Select a category below:')}</i>",
+        parse_mode=ParseMode.HTML, reply_markup=get_help_keyboard()
     )
 
-# --- 🖱️ CALLBACK HANDLER ---
+# --- CALLBACKS ---
 
 async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -102,89 +100,64 @@ async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data == "help_main":
-        try: await query.message.edit_media(InputMediaPhoto(media=HELP_IMG_URL, caption=f"📖 <b>{BOT_NAME} 𝐂𝐨𝐦𝐦𝐚𝐧𝐝 𝐃𝐢𝐚𝐫𝐲</b> 🌸\n\n<i>Select a category below to explore all features!</i>", parse_mode=ParseMode.HTML), reply_markup=get_help_keyboard())
-        except: await query.message.edit_caption(caption=f"📖 <b>{BOT_NAME} 𝐂𝐨𝐦𝐦𝐚𝐧𝐝 𝐃𝐢𝐚𝐫𝐲</b> 🌸\n\n<i>Select a category below to explore all features!</i>", parse_mode=ParseMode.HTML, reply_markup=get_help_keyboard())
+        try: await query.message.edit_media(InputMediaPhoto(media=HELP_IMG_URL, caption=f"📖 <b>{BOT_NAME} 𝐃𝐢𝐚𝐫𝐲</b> 🌸\n\n<i>{stylize_text('Select a category below:')}</i>", parse_mode=ParseMode.HTML), reply_markup=get_help_keyboard())
+        except: await query.message.edit_caption(caption=f"📖 <b>{BOT_NAME} 𝐃𝐢𝐚𝐫𝐲</b> 🌸\n\n<i>{stylize_text('Select a category below:')}</i>", parse_mode=ParseMode.HTML, reply_markup=get_help_keyboard())
         return
 
     target_photo = HELP_IMG_URL
     kb = get_back_keyboard()
     text = ""
     
+    # Using the new stylized function for headers
     if data == "help_social":
         text = (
-            "💍 <b>𝐒𝐨𝐜𝐢𝐚𝐥 & 𝐋𝐨𝐯𝐞</b>\n\n"
-            "<b>/propose @user</b>\n"
-            "↳ Marry someone (5% Tax Perk).\n\n"
-            "<b>/marry</b>\n"
-            "↳ Check relationship status.\n\n"
-            "<b>/divorce</b>\n"
-            "↳ Break up (Cost: 2k).\n\n"
-            "<b>/couple</b>\n"
-            "↳ Matchmaking Fun!"
+            f"💍 <b>{stylize_text('Social & Love')}</b>\n\n"
+            "<b>/propose @user</b>\n↳ ϻᴧꝛꝛʏ sσϻєσηє (5% ᴛᴧx ᴘєꝛᴋ)\n\n"
+            "<b>/marry</b>\n↳ ᴄʜєᴄᴋ sᴛᴧᴛυs\n\n"
+            "<b>/divorce</b>\n↳ ʙꝛєᴧᴋ υᴘ (ᴄσsᴛ 2ᴋ)\n\n"
+            "<b>/couple</b>\n↳ ϻᴧᴛᴄʜϻᴧᴋɪηɢ ғυη"
         )
-
     elif data == "help_economy":
         text = (
-            "💰 <b>𝐄𝐜𝐨𝐧𝐨𝐦𝐲 & 𝐒𝐡𝐨𝐩</b>\n\n"
-            "<b>/bal</b>\n"
-            "↳ Check Wallet, Rank & Inventory.\n\n"
-            "<b>/shop</b>\n"
-            "↳ Buy Weapons & Armor.\n\n"
-            "<b>/give [amt] [user]</b>\n"
-            "↳ Transfer (10% Tax).\n\n"
-            "<b>/claim</b>\n"
-            "↳ Group Bonus (2k).\n\n"
-            "<b>/daily</b>\n"
-            "↳ Streak Rewards.\n\n"
-            "<b>/ranking</b>\n"
-            "↳ Global Leaderboards."
+            f"👛 <b>{stylize_text('Economy & Shop')}</b>\n\n"
+            "<b>/bal</b>\n↳ ᴡᴧʟʟєᴛ & Ꝛᴧηᴋ\n\n"
+            "<b>/shop</b>\n↳ ʙυʏ ᴡєᴧᴘσηs & ᴧꝛϻσꝛ\n\n"
+            "<b>/give [amt] [user]</b>\n↳ ᴛꝛᴧηsғєꝛ (10% ᴛᴧx)\n\n"
+            "<b>/claim</b>\n↳ ɢꝛσυᴘ ʙσηυs (2ᴋ)\n\n"
+            "<b>/daily</b>\n↳ sᴛꝛєᴧᴋ Ꝛєᴡᴧꝛᴅs"
         )
-
     elif data == "help_rpg":
         text = (
-            "⚔️ <b>𝐑𝐏𝐆 & 𝐖𝐚𝐫</b>\n\n"
-            "<b>/kill [user]</b>\n"
-            "↳ Murder. 50% Chance to loot Items!\n"
-            "<b>/rob [amt] [user]</b>\n"
-            "↳ Steal coins + 20% Chance to steal Items.\n"
-            "<b>/protect 1d</b>\n"
-            "↳ Buy Shield. Protects partner too!\n"
-            "<b>/revive</b>\n"
-            "↳ Revive instantly for 500 coins."
+            f"⚔️ <b>{stylize_text('RPG & War')}</b>\n\n"
+            "<b>/kill [user]</b>\n↳ ϻυꝛᴅєꝛ & ʟσσᴛ (50%)\n\n"
+            "<b>/rob [amt] [user]</b>\n↳ sᴛєᴧʟ ᴄσɪηs (100% sυᴄᴄєss)\n\n"
+            "<b>/protect 1d</b>\n↳ ʙυʏ 24ʜ sʜɪєʟᴅ\n\n"
+            "<b>/revive</b>\n↳ ɪηsᴛᴧηᴛ Ꝛєᴠɪᴠє (500ᴄ)"
         )
-
     elif data == "help_fun":
         text = (
-            "🧠 <b>𝐀𝐈 & 𝐅𝐮𝐧</b>\n\n"
-            "<b>/draw [prompt]</b> ➪ AI Art (Flux Anime).\n"
-            "<b>/speak [text]</b> ➪ Anime Voice.\n"
-            "<b>/chatbot</b> ➪ AI Settings.\n"
-            "<b>/riddle</b> ➪ AI Quiz.\n"
-            "<b>/dice</b> | <b>/slots</b> ➪ Gambling."
+            f"🧠 <b>{stylize_text('AI & Media')}</b>\n\n"
+            "<b>/draw [prompt]</b>\n↳ ɢєηєꝛᴧᴛє ᴧηɪϻє ᴧꝛᴛ\n\n"
+            "<b>/speak [text]</b>\n↳ ᴄυᴛє ᴧηɪϻє ᴛᴛs\n\n"
+            "<b>/chatbot</b>\n↳ ᴧɪ sєᴛᴛɪηɢs\n\n"
+            "<b>/riddle</b>\n↳ ᴧɪ ǫυɪᴢ (1ᴋ Ꝛєᴡᴧꝛᴅ)\n\n"
+            "<b>/dice | /slots</b>\n↳ ɢᴧϻʙʟɪηɢ"
         )
-
     elif data == "help_group":
         text = (
-            "⚙️ <b>𝐆𝐫𝐨𝐮𝐩 𝐒𝐞𝐭𝐭𝐢𝐧𝐠𝐬</b>\n\n"
-            "<b>/welcome on/off</b> ➪ Welcome Images.\n"
-            "<b>/ping</b> ➪ System Status."
+            f"⛩️ <b>{stylize_text('Group Settings')}</b>\n\n"
+            "<b>/welcome on/off</b>\n↳ ᴡєʟᴄσϻє ɪϻᴧɢєs\n\n"
+            "<b>/ping</b>\n↳ sʏsᴛєϻ sᴛᴧᴛυs"
         )
-
     elif data == "help_sudo":
         if query.from_user.id not in SUDO_USERS: return await query.answer("❌ Baka! Owner Only!", show_alert=True)
         target_photo = SUDO_IMG
         text = (
-            "🔐 <b>𝐒𝐮𝐝𝐨 𝐏𝐚𝐧𝐞𝐥</b>\n\n"
-            "<b>/addcoins [amt] [user]</b>\n"
-            "<b>/rmcoins [amt] [user]</b>\n"
-            "<b>/freerevive [user]</b>\n"
-            "<b>/unprotect [user]</b>\n"
-            "<b>/broadcast -user/-group -clean</b>\n\n"
-            "<b>👑 Owner Only:</b>\n"
-            "<b>/update</b> (Restart System)\n"
-            "<b>/addsudo [user]</b>\n"
-            "<b>/rmsudo [user]</b>\n"
-            "<b>/cleandb</b> (Wipe Data)"
+            f"🔐 <b>{stylize_text('Sudo Panel')}</b>\n\n"
+            "<b>/addcoins</b>, <b>/rmcoins</b>\n"
+            "<b>/freerevive</b>, <b>/unprotect</b>\n"
+            "<b>/broadcast</b>, <b>/cleandb</b>\n"
+            "<b>/update</b>, <b>/addsudo</b>"
         )
 
     try: await query.message.edit_media(InputMediaPhoto(media=target_photo, caption=text, parse_mode=ParseMode.HTML), reply_markup=kb)
