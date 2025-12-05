@@ -51,6 +51,7 @@ def run_flask():
 async def post_init(application):
     print("✅ ʙᴏᴛ ᴄᴏɴɴᴇᴄᴛᴇᴅ! ꜱᴇᴛᴛɪɴɢ ᴍᴇɴᴜ ᴄᴏᴍᴍᴀɴᴅꜱ ᴡᴀɪᴛ ᴋʀ ʟᴀᴜᴅᴇ🪽...")
     
+    # --- PUBLIC MENU (Admin commands hidden) ---
     await application.bot.set_my_commands([
         ("start", "🌸 ϻᴧɪη ϻєηυ"), 
         ("help", "📖 ᴄσϻϻᴧηᴅ ᴅɪᴧꝛʏ"),
@@ -68,8 +69,7 @@ async def post_init(application):
         ("draw", "🎨 ᴧꝛᴛ"),
         ("speak", "🗣️ νσɪᴄє"), 
         ("chatbot", "🧠 ᴧɪ"),
-        ("ping", "📶 sᴛᴧᴛυs"), 
-        ("update", "🔄 υᴘᴅᴧᴛє"),
+        ("ping", "📶 sᴛᴧᴛυs")
     ])
     
     try:
@@ -148,7 +148,7 @@ if __name__ == '__main__':
         app_bot.add_handler(CommandHandler("ask", chatbot.ask_ai))           
         app_bot.add_handler(CallbackQueryHandler(chatbot.chatbot_callback, pattern="^ai_")) 
         
-        # Admin
+        # Admin & System
         app_bot.add_handler(CommandHandler("welcome", welcome.welcome_command))
         app_bot.add_handler(CommandHandler("broadcast", broadcast.broadcast))
         app_bot.add_handler(CommandHandler("sudo", admin.sudo_help))
@@ -167,15 +167,17 @@ if __name__ == '__main__':
         app_bot.add_handler(ChatMemberHandler(events.chat_member_update, ChatMemberHandler.MY_CHAT_MEMBER))
         app_bot.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome.new_member))
         
+        # 1. Collection (Waifu Guessing)
         app_bot.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS & ~filters.COMMAND, collection.collect_waifu), group=1)
-        app_bot.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS & ~filters.COMMAND, riddle.check_riddle_answer), group=2)
+        # 2. Drop Check (Message Counting)
+        app_bot.add_handler(MessageHandler(filters.ChatType.GROUPS, collection.check_drops), group=2)
+        # 3. Riddle Answer
+        app_bot.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS & ~filters.COMMAND, riddle.check_riddle_answer), group=3)
+        # 4. AI Chat
+        app_bot.add_handler(MessageHandler((filters.TEXT | filters.Sticker.ALL) & ~filters.COMMAND, chatbot.ai_message_handler), group=4)
         
-        # AI Handler
-        app_bot.add_handler(MessageHandler((filters.TEXT | filters.Sticker.ALL) & ~filters.COMMAND, chatbot.ai_message_handler), group=3)
-        
-        # --- FIXED TRACKER ---
-        # Uses the safe async wrapper from events.py
-        app_bot.add_handler(MessageHandler(filters.ChatType.GROUPS, events.group_tracker), group=4)
+        # 5. Group Tracking (FIXED: Uses Async function from events.py)
+        app_bot.add_handler(MessageHandler(filters.ChatType.GROUPS, events.group_tracker), group=5)
 
         print("ꝛʏᴧηʙᴧᴋᴧ ʙσᴛ ꜱᴛᴀʀᴛɪɴɢ ᴩᴏʟʟɪɴɢ...")
         app_bot.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
