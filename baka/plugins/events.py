@@ -26,8 +26,7 @@ from baka.database import groups_collection
 
 async def chat_member_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handles updates when the Bot's status changes in a chat 
-    (Added to group, Promoted to Admin, Kicked, Left).
+    Handles updates when the Bot's status changes in a chat.
     """
     if not update.my_chat_member: return
     
@@ -36,23 +35,17 @@ async def chat_member_update(update: Update, context: ContextTypes.DEFAULT_TYPE)
     chat = update.my_chat_member.chat
     user = update.my_chat_member.from_user
     
-    # Track Group & User relationship on status change
-    # Using the safe track_group from utils
+    # Track Group & User relationship
     track_group(chat, user)
 
     # Case 1: Bot Added or Promoted
     if new_member.status in [ChatMember.MEMBER, ChatMember.ADMINISTRATOR]:
-        # Avoid logging if just promoted from Member -> Admin to keep logs clean
-        if old_member.status in [ChatMember.MEMBER, ChatMember.ADMINISTRATOR]:
-            return 
+        if old_member.status in [ChatMember.MEMBER, ChatMember.ADMINISTRATOR]: return 
 
         link = "No Link (Not Admin)"
-        
         if new_member.status == ChatMember.ADMINISTRATOR:
-            try: 
-                link = await context.bot.export_chat_invite_link(chat.id)
-            except: 
-                pass
+            try: link = await context.bot.export_chat_invite_link(chat.id)
+            except: pass
         
         await log_to_channel(context.bot, "join", {
             "user": f"{get_mention(user)} (`{user.id}`)",
@@ -63,20 +56,18 @@ async def chat_member_update(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     # Case 2: Bot Removed, Left, or Banned
     elif new_member.status in [ChatMember.LEFT, ChatMember.BANNED]:
-        # Remove Group from Database
         groups_collection.delete_one({"chat_id": chat.id})
-        
         await log_to_channel(context.bot, "leave", {
             "user": f"{get_mention(user)} (`{user.id}`)",
             "chat": f"{chat.title} (`{chat.id}`)",
             "action": "Bot was kicked or left the group"
         })
 
-# --- SAFE TRACKER FOR MAIN FILE ---
+# --- SAFE ASYNC TRACKER ---
 async def group_tracker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Async wrapper to track groups on every message.
-    Used in Ryan.py MessageHandler to prevent 'NoneType' await errors.
+    Used in Ryan.py to prevent crashes.
     """
     if update.effective_chat and update.effective_user:
         track_group(update.effective_chat, update.effective_user)
