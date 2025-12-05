@@ -19,6 +19,7 @@
 # Contact for permissions:
 # Email: king25258069@gmail.com
 
+import html
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatType
@@ -52,9 +53,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ensure_user_exists(user)
         track_group(chat, user)
         
-        # Aesthetic Start Text
+        # --- FIX: ESCAPE NAME BEFORE STYLING ---
+        safe_name = html.escape(user.first_name)
+        
         caption = (
-            f"👋 {stylize_text(f'Konichiwa {user.first_name}!')} (⁠≧⁠▽⁠≦⁠)\n\n"
+            f"👋 {stylize_text(f'Konichiwa {safe_name}!')} (⁠≧⁠▽⁠≦⁠)\n\n"
             f"『 <b>{BOT_NAME}</b> 』\n"
             f"<i>{stylize_text('The Aesthetic AI-Powered RPG Bot!')}</i> 🌸\n\n"
             f"🎮 <b>{stylize_text('Features')}:</b>\n"
@@ -66,16 +69,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"<i>{stylize_text('Click the buttons below!')}</i>"
         )
 
-        # Safe Username fetch
         bot_un = context.bot.username if context.bot.username else "RyanBakaBot"
         kb = get_start_keyboard(bot_un)
 
-        # 1. Handle Callback (Back Button)
         if update.callback_query:
             try: await update.callback_query.message.edit_media(InputMediaPhoto(media=START_IMG_URL, caption=caption, parse_mode=ParseMode.HTML), reply_markup=kb)
             except: await update.callback_query.message.edit_caption(caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
-        
-        # 2. Handle Command (/start)
         else:
             if START_IMG_URL and START_IMG_URL.startswith("http"):
                 try: await update.message.reply_photo(photo=START_IMG_URL, caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
@@ -83,15 +82,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await update.message.reply_text(caption, parse_mode=ParseMode.HTML, reply_markup=kb)
 
-        # Logging
         if chat.type == ChatType.PRIVATE and not update.callback_query:
             await log_to_channel(context.bot, "command", {"user": f"{get_mention(user)} (`{user.id}`)", "action": "Started Bot", "chat": "Private"})
             
     except Exception as e:
+        # Improved Error Reporting
         print(f"Start Error: {e}")
-        # Last Resort Fallback
-        try: await update.message.reply_text("✨ <b>Bot is Alive!</b>\n<i>(Visuals failed to load)</i>", parse_mode=ParseMode.HTML)
-        except: pass
+        try: await update.message.reply_text(f"❌ <b>Error:</b> {e}", parse_mode=ParseMode.HTML)
+        except: await update.message.reply_text("❌ Critical Error.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_photo(
