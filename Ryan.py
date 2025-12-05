@@ -1,4 +1,3 @@
-# Copyright (c) 2025 Telegram:- @WTF_Phantom <DevixOP>
 # Location: Supaul, Bihar 
 #
 # All rights reserved.
@@ -19,6 +18,7 @@
 
 import os
 os.environ["GIT_PYTHON_REFRESH"] = "quiet"
+
 from threading import Thread
 from flask import Flask
 from telegram import Update 
@@ -27,8 +27,11 @@ from telegram.ext import (
     ChatMemberHandler, MessageHandler, filters
 )
 from telegram.request import HTTPXRequest
+
+# --- INTERNAL IMPORTS ---
 from baka.config import TOKEN, PORT
 from baka.utils import track_group, log_to_channel, BOT_NAME, stylize_text
+# Import Plugins
 from baka.plugins import start, economy, game, admin, broadcast, fun, events, welcome, ping, chatbot, riddle, social, ai_media, waifu, collection, shop, daily
 
 app = Flask(__name__)
@@ -39,8 +42,7 @@ def run_flask(): app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=Fa
 async def post_init(application):
     print("✅ ʙᴏᴛ ᴄᴏɴɴᴇᴄᴛᴇᴅ! ꜱᴇᴛᴛɪɴɢ ᴍᴇɴᴜ ᴄᴏᴍᴍᴀɴᴅꜱ ᴡᴀɪᴛ ᴋʀ ʟᴀᴜᴅᴇ🪽...")
     
-    # Applied the Font to descriptions where possible (Telegram Menu supports limited charset)
-    # But used clear text for command names as required by API
+    # Applied Aesthetic Font to descriptions
     await application.bot.set_my_commands([
         ("start", "🌸 ϻᴧɪη ϻєηυ"), 
         ("help", "📖 ᴄσϻϻᴧηᴅ ᴅɪᴧꝛʏ"),
@@ -76,44 +78,57 @@ if __name__ == '__main__':
     flask_thread.daemon = True
     flask_thread.start()
     
-    if not TOKEN: print("CRITICAL: BOT_TOKEN missing.")
+    if not TOKEN:
+        print("CRITICAL: BOT_TOKEN is missing.")
     else:
         t_request = HTTPXRequest(connection_pool_size=16, connect_timeout=60.0, read_timeout=60.0)
         app_bot = ApplicationBuilder().token(TOKEN).request(t_request).post_init(post_init).build()
 
-        # --- HANDLERS ---
+        # --- REGISTER HANDLERS ---
+        
+        # Basics
         app_bot.add_handler(CommandHandler("start", start.start))
         app_bot.add_handler(CommandHandler("help", start.help_command))
         app_bot.add_handler(CallbackQueryHandler(start.help_callback, pattern="^help_"))
         app_bot.add_handler(CallbackQueryHandler(start.help_callback, pattern="^return_start$"))
         
+        # Ping
+        app_bot.add_handler(CommandHandler("ping", ping.ping))
+        app_bot.add_handler(CallbackQueryHandler(ping.ping_callback, pattern="^sys_stats$"))
+        
+        # Economy
+        app_bot.add_handler(CommandHandler("register", economy.register))
         app_bot.add_handler(CommandHandler("bal", economy.balance))
         app_bot.add_handler(CallbackQueryHandler(economy.inventory_callback, pattern="^inv_"))
+        app_bot.add_handler(CommandHandler("ranking", economy.ranking))
         app_bot.add_handler(CommandHandler("give", economy.give))
         app_bot.add_handler(CommandHandler("claim", economy.claim))
-        app_bot.add_handler(CommandHandler("ranking", economy.ranking))
-        app_bot.add_handler(CommandHandler("register", economy.register))
         app_bot.add_handler(CommandHandler("daily", daily.daily))
         
+        # Shop
         app_bot.add_handler(CommandHandler("shop", shop.shop_menu))
         app_bot.add_handler(CommandHandler("buy", shop.buy))
         app_bot.add_handler(CallbackQueryHandler(shop.shop_callback, pattern="^shop_"))
         
+        # Game
         app_bot.add_handler(CommandHandler("kill", game.kill))
         app_bot.add_handler(CommandHandler("rob", game.rob))
         app_bot.add_handler(CommandHandler("protect", game.protect))
         app_bot.add_handler(CommandHandler("revive", game.revive))
         
+        # Social
         app_bot.add_handler(CommandHandler("propose", social.propose))
         app_bot.add_handler(CommandHandler("marry", social.marry_status))
         app_bot.add_handler(CommandHandler("divorce", social.divorce))
         app_bot.add_handler(CommandHandler("couple", social.couple_game))
         app_bot.add_handler(CallbackQueryHandler(social.proposal_callback, pattern="^marry_"))
         
+        # Waifu
         app_bot.add_handler(CommandHandler("wpropose", waifu.wpropose))
         app_bot.add_handler(CommandHandler("wmarry", waifu.wmarry))
         for a in waifu.SFW_ACTIONS: app_bot.add_handler(CommandHandler(a, waifu.waifu_action))
 
+        # Fun / AI
         app_bot.add_handler(CommandHandler("dice", fun.dice))
         app_bot.add_handler(CommandHandler("slots", fun.slots))
         app_bot.add_handler(CommandHandler("riddle", riddle.riddle_command))
@@ -123,11 +138,9 @@ if __name__ == '__main__':
         app_bot.add_handler(CommandHandler("ask", chatbot.ask_ai))           
         app_bot.add_handler(CallbackQueryHandler(chatbot.chatbot_callback, pattern="^ai_")) 
         
-        app_bot.add_handler(CommandHandler("ping", ping.ping))
-        app_bot.add_handler(CallbackQueryHandler(ping.ping_callback, pattern="^sys_stats$"))
+        # Admin
         app_bot.add_handler(CommandHandler("welcome", welcome.welcome_command))
         app_bot.add_handler(CommandHandler("broadcast", broadcast.broadcast))
-        
         app_bot.add_handler(CommandHandler("sudo", admin.sudo_help))
         app_bot.add_handler(CommandHandler("sudolist", admin.sudolist))
         app_bot.add_handler(CommandHandler("addsudo", admin.addsudo))
@@ -140,6 +153,7 @@ if __name__ == '__main__':
         app_bot.add_handler(CommandHandler("update", admin.update_bot))
         app_bot.add_handler(CallbackQueryHandler(admin.confirm_handler, pattern="^cnf\|"))
         
+        # Events (Order Matters)
         app_bot.add_handler(ChatMemberHandler(events.chat_member_update, ChatMemberHandler.MY_CHAT_MEMBER))
         app_bot.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome.new_member))
         app_bot.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS & ~filters.COMMAND, collection.collect_waifu), group=1)
