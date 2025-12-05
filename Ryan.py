@@ -64,7 +64,7 @@ async def post_init(application):
     
     try:
         bot_info = await application.bot.get_me()
-        print(f"✅ Logged in as {bot_info.username}")
+        print(f"✅ Logged in as {bot_info.username} 𝐀ʙ 𝐃ᴇᴛᴏx 𝐊ᴏ 𝐀ᴩɴɪ 𝐆𝐅 кι ¢нυт ᴅᴇᴛᴀ ᴊᴀᴀ😎🥀")
         await log_to_channel(application.bot, "start", {
             "user": "System", "chat": "Cloud Server",
             "action": f"{BOT_NAME} (@{bot_info.username}) is now Online! 🚀"
@@ -145,7 +145,7 @@ if __name__ == '__main__':
         app_bot.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS & ~filters.COMMAND, collection.collect_waifu), group=1)
         app_bot.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS & ~filters.COMMAND, riddle.check_riddle_answer), group=2)
         app_bot.add_handler(MessageHandler((filters.TEXT | filters.Sticker.ALL) & ~filters.COMMAND, chatbot.ai_message_handler), group=3)
-        app_bot.add_handler(MessageHandler(filters.ChatType.GROUPS, lambda u,c: track_group(u.effective_chat, u.effective_user)), group=4)
+        app_bot.add_handler(MessageHandler(filters.ChatType.GROUPS, events.group_tracker), group=5)
 
-        print("ꝛʏᴧηʙᴧᴋᴧ ʙσᴛ Starting Polling...")
+        print("ꝛʏᴧηʙᴧᴋᴧ ʙσᴛ ꜱᴛᴀʀᴛɪɴɢ ᴩᴏʟʟɪɴɢ...")
         app_bot.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
