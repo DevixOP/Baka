@@ -25,6 +25,7 @@ import asyncio
 from datetime import datetime, timedelta
 from telegram import Bot
 from telegram.constants import ParseMode, ChatType
+from telegram.error import TelegramError
 from baka.database import users_collection, sudoers_collection, groups_collection
 from baka.config import OWNER_ID, SUDO_IDS_STR, LOGGER_ID, BOT_NAME, AUTO_REVIVE_HOURS, AUTO_REVIVE_BONUS
 
@@ -38,46 +39,9 @@ def reload_sudoers():
             if x.strip().isdigit(): SUDO_USERS.add(int(x.strip()))
     for doc in sudoers_collection.find({}):
         SUDO_USERS.add(doc["user_id"])
-
 reload_sudoers()
 
-# --- 🌸 AESTHETIC FONT ENGINE ---
-def stylize_text(text):
-    """
-    Converts text to 'Hybrid Anime Aesthetic' font.
-    Skips Links, Commands, and Mentions.
-    """
-    # The "Vibe" Map
-    font_map = {
-        'A': 'ᴧ', 'B': 'ʙ', 'C': 'ᴄ', 'D': 'ᴅ', 'E': 'Є', 'F': 'Ғ', 'G': 'ɢ',
-        'H': 'ʜ', 'I': 'ɪ', 'J': 'ᴊ', 'K': 'ᴋ', 'L': 'ʟ', 'M': 'ϻ', 'N': 'η',
-        'O': 'σ', 'P': 'ᴘ', 'Q': 'ǫ', 'R': 'Ꝛ', 'S': 's', 'T': 'ᴛ', 'U': 'υ',
-        'V': 'ᴠ', 'W': 'ᴡ', 'X': 'x', 'Y': 'ʏ', 'Z': 'ᴢ',
-        'a': 'ᴧ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'є', 'f': 'ғ', 'g': 'ɢ',
-        'h': 'ʜ', 'i': 'ɪ', 'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ϻ', 'n': 'η',
-        'o': 'σ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ꝛ', 's': 's', 't': 'ᴛ', 'u': 'υ',
-        'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ',
-        '1': '𝟏', '2': '𝟐', '3': '𝟑', '4': '𝟒', '5': '𝟓', 
-        '6': '𝟔', '7': '𝟕', '8': '𝟖', '9': '𝟗', '0': '𝟎'
-    }
-    
-    def apply_style(t):
-        return "".join(font_map.get(c, c) for c in t)
-
-    # Regex to skip code/links/mentions
-    pattern = r"(@\w+|https?://\S+|`[^`]+`|/[a-zA-Z0-9_]+)"
-    parts = re.split(pattern, text)
-    
-    result = []
-    for part in parts:
-        if re.match(pattern, part):
-            result.append(part)
-        else:
-            result.append(apply_style(part))
-            
-    return "".join(result)
-
-# --- 🎐 CUTIE LOGGER ---
+# --- 🎐 STYLISH LOGGER ---
 async def log_to_channel(bot: Bot, event_type: str, details: dict):
     if LOGGER_ID == 0: return
     now = datetime.now().strftime("%I:%M %p")
@@ -117,15 +81,8 @@ def check_auto_revive(user_doc):
     if user_doc['status'] != 'dead': return False
     death_time = user_doc.get('death_time')
     if not death_time: return False
-    
     if datetime.utcnow() - death_time > timedelta(hours=AUTO_REVIVE_HOURS):
-        users_collection.update_one(
-            {"user_id": user_doc["user_id"]}, 
-            {
-                "$set": {"status": "alive", "death_time": None},
-                "$inc": {"balance": AUTO_REVIVE_BONUS}
-            }
-        )
+        users_collection.update_one({"user_id": user_doc["user_id"]}, {"$set": {"status": "alive", "death_time": None}, "$inc": {"balance": AUTO_REVIVE_BONUS}})
         return True
     return False
 
@@ -155,7 +112,8 @@ def ensure_user_exists(tg_user):
         if updates: users_collection.update_one({"user_id": tg_user.id}, {"$set": updates})
         return user_doc
 
-def track_group(chat, user):
+def track_group(chat, user=None):
+    """Safe Group Tracker. User arg is optional to prevent crashes."""
     if chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]:
         if not groups_collection.find_one({"chat_id": chat.id}):
             groups_collection.insert_one({"chat_id": chat.id, "title": chat.title, "claimed": False})
@@ -165,7 +123,6 @@ def track_group(chat, user):
 async def resolve_target(update, context, specific_arg=None):
     if update.message.reply_to_message:
         return ensure_user_exists(update.message.reply_to_message.from_user), None
-
     query = specific_arg if specific_arg else (context.args[0] if context.args else None)
     if query:
         if query.isdigit():
@@ -187,11 +144,9 @@ def get_active_protection(user_data):
     if partner_id:
         partner = users_collection.find_one({"user_id": partner_id})
         if partner: partner_expiry = partner.get("protection_expiry")
-
     valid_expiries = []
     if self_expiry and self_expiry > now: valid_expiries.append(self_expiry)
     if partner_expiry and partner_expiry > now: valid_expiries.append(partner_expiry)
-
     if not valid_expiries: return None
     return max(valid_expiries)
 
@@ -205,3 +160,30 @@ def format_time(timedelta_obj):
     hours, remainder = divmod(total_seconds, 3600)
     minutes, _ = divmod(remainder, 60)
     return f"{hours}h {minutes}m"
+
+# --- 🌸 AESTHETIC FONT ENGINE ---
+def stylize_text(text):
+    font_map = {
+        'A': 'ᴧ', 'B': 'ʙ', 'C': 'ᴄ', 'D': 'ᴅ', 'E': 'Є', 'F': 'Ғ', 'G': 'ɢ',
+        'H': 'ʜ', 'I': 'ɪ', 'J': 'ᴊ', 'K': 'ᴋ', 'L': 'ʟ', 'M': 'ϻ', 'N': 'η',
+        'O': 'σ', 'P': 'ᴘ', 'Q': 'ǫ', 'R': 'Ꝛ', 'S': 's', 'T': 'ᴛ', 'U': 'υ',
+        'V': 'ᴠ', 'W': 'ᴡ', 'X': 'x', 'Y': 'ʏ', 'Z': 'ᴢ',
+        'a': 'ᴧ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'є', 'f': 'ғ', 'g': 'ɢ',
+        'h': 'ʜ', 'i': 'ɪ', 'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ϻ', 'n': 'η',
+        'o': 'σ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ꝛ', 's': 's', 't': 'ᴛ', 'u': 'υ',
+        'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ',
+        '0': '𝟎', '1': '𝟏', '2': '𝟐', '3': '𝟑', '4': '𝟒', 
+        '5': '𝟓', '6': '𝟔', '7': '𝟕', '8': '𝟖', '9': '𝟗'
+    }
+    
+    def apply_style(t):
+        return "".join(font_map.get(c, c) for c in t)
+
+    pattern = r"(@\w+|https?://\S+|`[^`]+`|/[a-zA-Z0-9_]+)"
+    parts = re.split(pattern, text)
+    result = []
+    for part in parts:
+        if re.match(pattern, part): result.append(part)
+        else: result.append(apply_style(part))
+            
+    return "".join(result)
