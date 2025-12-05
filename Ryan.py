@@ -37,7 +37,7 @@ def health(): return "Alive"
 def run_flask(): app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)
 
 async def post_init(application):
-    print("✅ Bot connected! Setting menu commands...")
+    print("✅ ʙᴏᴛ ᴄᴏɴɴᴇᴄᴛᴇᴅ! ꜱᴇᴛᴛɪɴɢ ᴍᴇɴᴜ ᴄᴏᴍᴍᴀɴᴅꜱ ᴡᴀɪᴛ ᴋʀ ʟᴀᴜᴅᴇ🪽...")
     
     # Applied the Font to descriptions where possible (Telegram Menu supports limited charset)
     # But used clear text for command names as required by API
