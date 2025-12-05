@@ -49,8 +49,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     chat = update.effective_chat
     ensure_user_exists(user)
-    
-    # --- FIXED TRACKING ---
     track_group(chat, user)
     
     caption = (
