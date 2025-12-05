@@ -27,7 +27,6 @@ from baka.utils import ensure_user_exists, get_mention, track_group, log_to_chan
 
 SUDO_IMG = "https://files.catbox.moe/gyi5iu.jpg"
 
-# --- 🎨 STYLED KEYBOARDS ---
 def get_start_keyboard(bot_username):
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🎐 υᴘᴅᴧᴛєs", url=SUPPORT_CHANNEL), InlineKeyboardButton("☁️ sυᴘᴘσꝛᴛ", url=SUPPORT_GROUP)],
@@ -46,15 +45,14 @@ def get_help_keyboard():
 def get_back_keyboard():
     return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 ʙᴧᴄᴋ", callback_data="help_main")]])
 
-# --- COMMANDS ---
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     chat = update.effective_chat
     ensure_user_exists(user)
+    
+    # --- FIXED TRACKING ---
     track_group(chat, user)
     
-    # Aesthetic Start Text
     caption = (
         f"👋 {stylize_text(f'Konichiwa {user.first_name}!')} (⁠≧⁠▽⁠≦⁠)\n\n"
         f"『 <b>{BOT_NAME}</b> 』\n"
@@ -64,7 +62,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⊚  <b>sσᴄɪᴧʟ:</b> ϻᴧꝛꝛʏ, ᴄσυᴘʟє, ᴡᴧɪғυ\n"
         f"➻  <b>Єᴄσησϻʏ:</b> ᴄʟᴧɪϻ, sʜσᴘ, ɢɪᴠє\n"
         f"➻  <b>ᴧɪ:</b> sᴧssʏ ᴄʜᴧᴛʙσᴛ & ᴧꝛᴛ\n\n"
-        f"💭 <b>{stylize_text('Need Help?')}</b>\n"
+        f"✦ {stylize_text('Need Help?')}\n"
         f"<i>{stylize_text('Click the buttons below!')}</i>"
     )
 
@@ -89,8 +87,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.HTML, reply_markup=get_help_keyboard()
     )
 
-# --- CALLBACKS ---
-
 async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
@@ -108,7 +104,6 @@ async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kb = get_back_keyboard()
     text = ""
     
-    # Using the new stylized function for headers
     if data == "help_social":
         text = (
             f"💍 <b>{stylize_text('Social & Love')}</b>\n\n"
