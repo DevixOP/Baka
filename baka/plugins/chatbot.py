@@ -31,8 +31,8 @@ from baka.utils import stylize_text
 
 # Settings
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
-MODEL = "mistral-small-latest" 
-MAX_HISTORY = 12
+MODEL = "mistral-large-latest" 
+MAX_HISTORY = 10
 
 # --- CUTE STICKER PACKS ---
 STICKER_PACKS = [
