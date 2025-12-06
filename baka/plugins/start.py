@@ -30,8 +30,8 @@ SUDO_IMG = "https://files.catbox.moe/gyi5iu.jpg"
 
 def get_start_keyboard(bot_username):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎐 υᴘᴅᴧᴛєs", url=SUPPORT_CHANNEL), InlineKeyboardButton("☁️ sυᴘᴘσꝛᴛ", url=SUPPORT_GROUP)],
-        [InlineKeyboardButton("➕ ᴧᴅᴅ ϻє ʙᴧʙʏ ➕", url=f"https://t.me/{bot_username}?startgroup=true")],
+        [InlineKeyboardButton("📢 𝐔𝐩𝐝𝐚𝐭𝐞𝐬", url=SUPPORT_CHANNEL), InlineKeyboardButton("💬 𝐒𝐮𝐩𝐩𝐨𝐫𝐭", url=SUPPORT_GROUP)],
+        [InlineKeyboardButton("➕ 𝐀𝐝𝐝 𝐌𝐞 𝐁𝐚𝐛𝐲 ➕", url=f"https://t.me/{bot_username}?startgroup=true")],
         [InlineKeyboardButton("🏩 ϻєηυ", callback_data="help_main"), InlineKeyboardButton("👑 σᴡηєꝛ", url=OWNER_LINK)]
     ])
 
@@ -53,11 +53,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ensure_user_exists(user)
         track_group(chat, user)
         
-        # --- FIX: ESCAPE NAME BEFORE STYLING ---
-        safe_name = html.escape(user.first_name)
+        # --- FIX: Original Name, Styled Greeting ---
+        user_link = get_mention(user) # Returns formatted HTML link with original name
         
         caption = (
-            f"👋 {stylize_text(f'Konichiwa {safe_name}!')} (⁠≧⁠▽⁠≦⁠)\n\n"
+            f"👋 {stylize_text('Konichiwa')} {user_link}! (⁠≧⁠▽⁠≦⁠)\n\n"
             f"『 <b>{BOT_NAME}</b> 』\n"
             f"<i>{stylize_text('The Aesthetic AI-Powered RPG Bot!')}</i> 🌸\n\n"
             f"🎮 <b>{stylize_text('Features')}:</b>\n"
@@ -72,9 +72,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bot_un = context.bot.username if context.bot.username else "RyanBakaBot"
         kb = get_start_keyboard(bot_un)
 
+        # 1. Handle Callback (Back Button)
         if update.callback_query:
             try: await update.callback_query.message.edit_media(InputMediaPhoto(media=START_IMG_URL, caption=caption, parse_mode=ParseMode.HTML), reply_markup=kb)
             except: await update.callback_query.message.edit_caption(caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
+        
+        # 2. Handle Command (/start)
         else:
             if START_IMG_URL and START_IMG_URL.startswith("http"):
                 try: await update.message.reply_photo(photo=START_IMG_URL, caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
@@ -86,10 +89,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await log_to_channel(context.bot, "command", {"user": f"{get_mention(user)} (`{user.id}`)", "action": "Started Bot", "chat": "Private"})
             
     except Exception as e:
-        # Improved Error Reporting
         print(f"Start Error: {e}")
-        try: await update.message.reply_text(f"❌ <b>Error:</b> {e}", parse_mode=ParseMode.HTML)
-        except: await update.message.reply_text("❌ Critical Error.")
+        # Last Resort Fallback
+        try: await update.message.reply_text(f"👋 <b>Hi {html.escape(user.first_name)}!</b>\nBot is online.", parse_mode=ParseMode.HTML)
+        except: pass
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_photo(
