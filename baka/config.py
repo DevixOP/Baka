@@ -28,7 +28,13 @@ START_TIME = time.time()
 # Env Variables
 TOKEN = os.getenv("BOT_TOKEN")
 MONGO_URI = os.getenv("MONGO_URI")
+
+# --- AI KEYS ---
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "") 
+# Codestral usually uses the same Mistral Key, but we allow a separate one just in case
+CODESTRAL_API_KEY = os.getenv("CODESTRAL_API_KEY", MISTRAL_API_KEY)
+
 PORT = int(os.environ.get("PORT", 5000))
 
 # Updater Config
@@ -40,9 +46,9 @@ START_IMG_URL = os.getenv("START_IMG_URL", "https://telegra.ph/file/5e5480760e41
 HELP_IMG_URL = os.getenv("HELP_IMG_URL", "https://files.catbox.moe/5g37fy.jpg") 
 WELCOME_IMG_URL = os.getenv("WELCOME_IMG_URL", "https://files.catbox.moe/gyi5iu.jpg") 
 
-SUPPORT_GROUP = os.getenv("SUPPORT_GROUP", "https://t.me/ShreyaBotSupport")
-SUPPORT_CHANNEL = os.getenv("SUPPORT_CHANNEL", "https://t.me/ShreyaBots")
-OWNER_LINK = os.getenv("OWNER_LINK", "https://t.me/WTF_Phantom")
+SUPPORT_GROUP = os.getenv("SUPPORT_GROUP", "https://t.me/YourSupportGroup")
+SUPPORT_CHANNEL = os.getenv("SUPPORT_CHANNEL", "https://t.me/YourUpdateChannel")
+OWNER_LINK = os.getenv("OWNER_LINK", "https://t.me/YourOwnerUsername")
 
 # IDs
 try: LOGGER_ID = int(os.getenv("LOGGER_ID", "0").strip())
@@ -54,8 +60,8 @@ SUDO_IDS_STR = os.getenv("SUDO_IDS", "")
 # Game Constants
 BOT_NAME = "🫧 ʙᴀᴋᴀ ×͜࿐"
 REVIVE_COST = 500
-PROTECT_1D_COST = 1000
-PROTECT_2D_COST = 1800
+PROTECT_1D_COST = 5000
+PROTECT_2D_COST = 9000
 REGISTER_BONUS = 5000
 CLAIM_BONUS = 2000
 RIDDLE_REWARD = 1000
@@ -65,12 +71,11 @@ TAX_RATE = 0.10
 MARRIED_TAX_RATE = 0.05
 AUTO_REVIVE_HOURS = 6
 AUTO_REVIVE_BONUS = 200
-ITEM_EXPIRY_HOURS = 24 
 MIN_CLAIM_MEMBERS = 100
 
-# --- 🛒 BALANCED SHOP ITEMS (Max 60%) ---
+# --- 🛒 SHOP ITEMS (60+ Items) ---
 SHOP_ITEMS = [
-    # WEAPONS (Damage Buff - Increases Kill Reward)
+    # WEAPONS (Damage Buff)
     {"id": "stick", "name": "🪵 Stick", "price": 500, "type": "weapon", "buff": 0.01},
     {"id": "brick", "name": "🧱 Brick", "price": 1000, "type": "weapon", "buff": 0.02},
     {"id": "slingshot", "name": "🪃 Slingshot", "price": 2000, "type": "weapon", "buff": 0.03},
@@ -91,7 +96,7 @@ SHOP_ITEMS = [
     {"id": "laser", "name": "⚡ Laser", "price": 800000, "type": "weapon", "buff": 0.59},
     {"id": "deathnote", "name": "📓 Death Note", "price": 5000000, "type": "weapon", "buff": 0.60}, # Max Dmg
 
-    # ARMOR (Block Chance - Stops Robberies)
+    # ARMOR (Block Chance)
     {"id": "paper", "name": "📰 Newspaper", "price": 500, "type": "armor", "buff": 0.01},
     {"id": "cardboard", "name": "📦 Cardboard", "price": 1000, "type": "armor", "buff": 0.02},
     {"id": "cloth", "name": "👕 Cloth", "price": 2500, "type": "armor", "buff": 0.05},
@@ -107,7 +112,7 @@ SHOP_ITEMS = [
     {"id": "force", "name": "🔮 Forcefield", "price": 3000000, "type": "armor", "buff": 0.55},
     {"id": "plot", "name": "🎬 Plot Armor", "price": 10000000, "type": "armor", "buff": 0.60}, # Max Block
 
-    # FLEX (Safe Assets - Burn on Death)
+    # FLEX
     {"id": "cookie", "name": "🍪 Cookie", "price": 100, "type": "flex", "buff": 0},
     {"id": "coffee", "name": "☕ Starbucks", "price": 300, "type": "flex", "buff": 0},
     {"id": "rose", "name": "🌹 Rose", "price": 500, "type": "flex", "buff": 0},
@@ -126,7 +131,7 @@ SHOP_ITEMS = [
     {"id": "yacht", "name": "🛳️ Super Yacht", "price": 3000000, "type": "flex", "buff": 0},
     {"id": "mansion", "name": "🏰 Mansion", "price": 5000000, "type": "flex", "buff": 0},
     {"id": "jet", "name": "✈️ Private Jet", "price": 10000000, "type": "flex", "buff": 0},
-    {"id": "island", "name": "🏝️ Private Island", "price": 50000000, "type": "flex", "buff": 0},
+    {"id": "island", "name": "🏝️ Island", "price": 50000000, "type": "flex", "buff": 0},
     {"id": "moon", "name": "🌑 The Moon", "price": 100000000, "type": "flex", "buff": 0},
     {"id": "mars", "name": "🪐 Mars", "price": 500000000, "type": "flex", "buff": 0},
     {"id": "sun", "name": "☀️ The Sun", "price": 1000000000, "type": "flex", "buff": 0},
