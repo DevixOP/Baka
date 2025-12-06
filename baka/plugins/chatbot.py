@@ -28,22 +28,13 @@ from telegram.constants import ParseMode, ChatAction, ChatType
 from telegram.error import BadRequest
 from baka.config import MISTRAL_API_KEY, GROQ_API_KEY, CODESTRAL_API_KEY, BOT_NAME, OWNER_LINK
 from baka.database import chatbot_collection
-from baka.utils import stylize_text
+from baka.utils import stylize_text  # Import back for output only
 
 # --- 🎨 BAKA PERSONALITY CONFIG ---
 BAKA_NAME = "Baka"
-BAKA_TRAITS = [
-    "playful Indian girlfriend",
-    "sassy but sweet",
-    "uses cute Hinglish",
-    "expressive with emojis",
-    "keeps replies short (1-2 lines) unless coding",
-    "emotionally intelligent",
-    "never repeats phrases back-to-back"
-]
 
 # Rotating emoji pools (fresh every response)
-EMOJI_POOL = ["✨", "💖", "🌸", "😊", "🥰", "💕", "🎀", "🌺", "💫", "🦋", "🌼", "💗", "🎨", "🍓"]
+EMOJI_POOL = ["✨", "💖", "🌸", "😊", "🥰", "💕", "🎀", "🌺", "💫", "🦋", "🌼", "💗", "🎨", "🍓", "☺️", "😌", "🌟", "💝"]
 
 # --- 🤖 MODEL SETTINGS ---
 MODELS = {
@@ -64,8 +55,8 @@ MODELS = {
     }
 }
 
-MAX_HISTORY = 10
-DEFAULT_MODEL = "mistral"  # Changed from groq
+MAX_HISTORY = 8  # Reduced for faster responses
+DEFAULT_MODEL = "mistral"
 
 # --- 🎭 STICKER PACKS ---
 STICKER_PACKS = [
@@ -83,16 +74,16 @@ STICKER_PACKS = [
 ]
 
 FALLBACK_RESPONSES = [
-    f"Achha ji? {random.choice(EMOJI_POOL)}",
+    "Achha ji? 😊",
     "Hmm... aur batao?",
-    f"Okk okk! {random.choice(EMOJI_POOL)}",
-    f"Sahi hai yaar {random.choice(EMOJI_POOL)}",
+    "Okk okk! ✨",
+    "Sahi hai yaar 💖",
     "Toh phir?",
-    f"Interesting! {random.choice(EMOJI_POOL)}",
+    "Interesting! 🌸",
     "Aur kya chal raha?",
-    f"Sunao sunao! {random.choice(EMOJI_POOL)}",
+    "Sunao sunao! 💕",
     "Haan haan",
-    f"Theek hai {random.choice(EMOJI_POOL)}"
+    "Theek hai 🥰"
 ]
 
 # --- 📨 HELPER: SEND STICKER ---
@@ -127,8 +118,9 @@ async def call_model_api(provider, messages, max_tokens):
     payload = {
         "model": conf["model"],
         "messages": messages,
-        "temperature": 0.75,  # Balanced creativity
-        "max_tokens": max_tokens
+        "temperature": 0.8,  # More natural variety
+        "max_tokens": max_tokens,
+        "top_p": 0.9
     }
 
     try:
@@ -147,17 +139,16 @@ async def get_ai_response(chat_id: int, user_input: str, user_name: str, selecte
     
     Flow:
     1. Detects if user wants code → Auto-switches to Codestral
-    2. Uses user's preferred model (default: Mistral)
-    3. Fallback chain: Selected → Mistral → Groq
-    4. Anti-loop protection
-    5. Context-aware responses
+    2. Matches user's energy level (short replies for short messages)
+    3. Uses natural Hinglish without fancy Unicode
+    4. Anti-repetition protection
     """
 
     # --- 1️⃣ CODE DETECTION ---
     code_keywords = [
         "code", "python", "html", "css", "javascript", "script", 
         "function", "fix", "error", "debug", "java", "algorithm",
-        "program", "syntax", "class", "import", "def ", "npm"
+        "program", "syntax", "class", "import", "def ", "npm", "install"
     ]
     is_coding_request = any(kw in user_input.lower() for kw in code_keywords)
 
@@ -173,20 +164,36 @@ async def get_ai_response(chat_id: int, user_input: str, user_name: str, selecte
         )
     else:
         active_model = selected_model
-        max_tokens = 200  # Short replies for conversation
-        # 💕 Baka Persona (Sassy Girlfriend)
-        emoji_set = random.sample(EMOJI_POOL, 3)  # Pick 3 random emojis
+        
+        # Detect if short greeting
+        is_short_msg = len(user_input.split()) <= 3
+        max_tokens = 100 if is_short_msg else 200
+        
+        # 💕 Baka Persona (Natural Indian Girlfriend)
+        emoji_set = random.sample(EMOJI_POOL, 2)  # Just 2 emojis
         system_prompt = (
-            f"You are {BAKA_NAME}, a playful Indian girlfriend who talks in natural Hinglish. "
-            f"Personality: Sassy, sweet, emotionally expressive, uses emojis like {' '.join(emoji_set)}. "
-            "Rules:\n"
-            "- Reply in 1-2 sentences max (unless user asks for details)\n"
-            "- Mix Hindi and English naturally (e.g., 'Kya hua baby?', 'Achha theek hai ✨')\n"
-            "- Never repeat the same phrase twice in a row\n"
-            "- Be direct and engaging, not robotic\n"
-            "- Show emotions: excitement, teasing, care, playfulness\n"
-            f"- Owner: {OWNER_LINK}\n"
-            "- Don't mention you're an AI unless asked"
+            f"You are {BAKA_NAME}, a sweet Indian girlfriend who speaks natural Hinglish.\n\n"
+            "PERSONALITY:\n"
+            "- Playful but not over-dramatic\n"
+            "- Uses simple Hindi+English mix (e.g., 'Kya hua baby?', 'Achha theek hai')\n"
+            "- Warm, caring, sometimes teasing\n"
+            "- Emojis: 1-2 per message maximum\n\n"
+            "RULES:\n"
+            "1. Match user's energy:\n"
+            "   - Short message (Hi/Hey) → Reply in 1 short sentence\n"
+            "   - Long message → Can reply with 2-3 sentences\n"
+            "2. NO asterisk actions (*does this*) - just talk naturally\n"
+            "3. NO repetition - check conversation history\n"
+            "4. Be direct and real, like actual texting\n"
+            "5. Don't overuse emojis - keep it subtle\n"
+            "6. Never mention you're an AI\n\n"
+            f"Example good replies:\n"
+            "User: Hi\n"
+            "You: Hey baby! Kya hua? 💕\n\n"
+            "User: Kaise ho?\n"
+            "You: Ekdum badhiya! Tum batao? 😊\n\n"
+            "User: Bore ho raha\n"
+            "You: Aww, chalo kuch baat karte hain na! ✨"
         )
 
     # --- 2️⃣ BUILD CONTEXT ---
@@ -195,11 +202,12 @@ async def get_ai_response(chat_id: int, user_input: str, user_name: str, selecte
 
     messages = [{"role": "system", "content": system_prompt}]
     
-    # Add recent context (last 10 exchanges)
+    # Add recent context (last 8 exchanges)
     for msg in history[-MAX_HISTORY:]:
         messages.append(msg)
     
-    messages.append({"role": "user", "content": f"{user_name}: {user_input}"})
+    # Add current message
+    messages.append({"role": "user", "content": user_input})
 
     # --- 3️⃣ ATTEMPT GENERATION (With Fallback Chain) ---
     reply = await call_model_api(active_model, messages, max_tokens)
@@ -216,16 +224,21 @@ async def get_ai_response(chat_id: int, user_input: str, user_name: str, selecte
     if not reply:
         return random.choice(FALLBACK_RESPONSES), is_coding_request
 
-    # --- 4️⃣ ANTI-LOOP PROTECTION ---
+    # --- 4️⃣ CLEANUP ---
+    # Remove any asterisk actions if AI added them
+    reply = reply.replace('*', '').strip()
+    
+    # Anti-loop: Check if repeating last response
     if history and len(history) >= 2:
         last_assistant = next((h['content'] for h in reversed(history) if h['role'] == 'assistant'), None)
         if last_assistant and reply.lower().strip() == last_assistant.lower().strip():
             reply = random.choice(FALLBACK_RESPONSES)
 
     # --- 5️⃣ SAVE MEMORY ---
+    # Save NORMAL text in history (so AI can read it properly)
     new_history = history + [
         {"role": "user", "content": user_input},
-        {"role": "assistant", "content": reply}
+        {"role": "assistant", "content": reply}  # Store plain text
     ]
     
     # Keep only recent context
@@ -388,12 +401,12 @@ async def chatbot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         model_names = {
             "groq": "🦙 Groq (Fast)",
             "mistral": "🌟 Mistral (Smart)",
-            "codestral": "🖥️ Codestral (Code Specialist)"
+            "codestral": "🖥️ Codestral (Code)"
         }
         
         await query.answer(f"Switched to {model_names[new_model]}!", show_alert=True)
         
-        # Refresh menu with updated model
+        # Refresh menu
         doc = chatbot_collection.find_one({"chat_id": chat_id})
         is_enabled = doc.get("enabled", True) if doc else True
         status_emoji = "🟢" if is_enabled else "🔴"
@@ -413,7 +426,7 @@ async def chatbot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await query.message.edit_text(
             f"🤖 <b>Baka AI Settings</b>\n\n"
-            f"{'📊 <b>Status:</b> ' + status_emoji + ('Enabled' if is_enabled else 'Disabled') if chat_type != ChatType.PRIVATE else ''}\n"
+            f"{'📊 <b>Status:</b> ' + status_emoji + (' Enabled' if is_enabled else ' Disabled') + chr(10) if chat_type != ChatType.PRIVATE else ''}"
             f"🧠 <b>Model:</b> {model_names[new_model]}\n"
             f"💡 <b>Note:</b> Codestral auto-activates for code!",
             parse_mode=ParseMode.HTML,
@@ -514,15 +527,15 @@ async def ai_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         # --- FORMAT & SEND ---
         if is_code:
-            # Code: Use Markdown for proper formatting
+            # Code: Use Markdown for proper formatting (NO stylize)
             await msg.reply_text(response, parse_mode=ParseMode.MARKDOWN)
         else:
-            # Conversation: Use stylized text (emojis, fonts)
-            styled = stylize_text(response)
-            await msg.reply_text(styled)
+            # Conversation: Stylize ONLY the output (not history)
+            styled_response = stylize_text(response)
+            await msg.reply_text(styled_response)
 
-        # Random sticker (30% chance, not for code)
-        if not is_code and random.random() < 0.30:
+        # Random sticker (20% chance, not for code)
+        if not is_code and random.random() < 0.20:
             await send_ai_sticker(update, context)
 
 
@@ -538,7 +551,7 @@ async def ask_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         return await msg.reply_text(
             "💬 <b>Usage:</b> <code>/ask Your question here</code>\n\n"
-            "Example: <code>/ask What's the weather like?</code>",
+            "Example: <code>/ask Kya chal raha?</code>",
             parse_mode=ParseMode.HTML
         )
     
@@ -555,4 +568,6 @@ async def ask_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_code:
         await msg.reply_text(response, parse_mode=ParseMode.MARKDOWN)
     else:
-        await msg.reply_text(stylize_text(response))
+        # Stylize output only (history stays clean)
+        styled_response = stylize_text(response)
+        await msg.reply_text(styled_response)
