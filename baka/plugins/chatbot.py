@@ -45,7 +45,8 @@ STICKER_PACKS = [
     "https://t.me/addstickers/MySet199",
     "https://t.me/addstickers/Quby741",
     "https://t.me/addstickers/Animalsasthegtjtky_by_fStikBot",
-    "https://t.me/addstickers/a6962237343_by_Marin_Roxbot"
+    "https://t.me/addstickers/a6962237343_by_Marin_Roxbot",
+    "https://t.me/addstickers/cybercats_stickers"
 ]
 
 # Loop Prevention Responses
@@ -63,7 +64,7 @@ FALLBACK_RESPONSES = [
 ]
 
 # --- SHARED AI FUNCTION (RESTORED) ---
-async def ask_mistral_raw(system_prompt, user_input, max_tokens=150):
+async def ask_mistral_raw(system_prompt, user_input, max_tokens=250):
     """Raw function for other plugins to use AI."""
     if not MISTRAL_API_KEY: return None
 
