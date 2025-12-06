@@ -21,20 +21,24 @@
 
 import httpx
 import random
+import asyncio
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode, ChatAction, ChatType
 from telegram.error import BadRequest
-from baka.config import MISTRAL_API_KEY, BOT_NAME, OWNER_LINK
+from baka.config import MISTRAL_API_KEY, GROQ_API_KEY, CODESTRAL_API_KEY, BOT_NAME, OWNER_LINK
 from baka.database import chatbot_collection
 from baka.utils import stylize_text
 
-# Settings
-MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
-MODEL = "mistral-large-latest" 
+# --- MODEL SETTINGS ---
+MODELS = {
+    "groq": {"url": "https://api.groq.com/openai/v1/chat/completions", "model": "llama3-70b-8192", "key": GROQ_API_KEY},
+    "mistral": {"url": "https://api.mistral.ai/v1/chat/completions", "model": "mistral-large-latest", "key": MISTRAL_API_KEY},
+    "codestral": {"url": "https://codestral.mistral.ai/v1/chat/completions", "model": "codestral-latest", "key": CODESTRAL_API_KEY}
+}
+
 MAX_HISTORY = 10
 
-# --- CUTE STICKER PACKS ---
 STICKER_PACKS = [
     "https://t.me/addstickers/RandomByDarkzenitsu",
     "https://t.me/addstickers/Null_x_sticker_2",
@@ -49,275 +53,232 @@ STICKER_PACKS = [
     "https://t.me/addstickers/cybercats_stickers"
 ]
 
-# Loop Prevention Responses
 FALLBACK_RESPONSES = [
-    "Achha ji? (⁠•⁠‿⁠•⁠)",
-    "Hmm... aur batao?",
-    "Okk okk!",
-    "Sahi hai yaar ✨",
-    "Toh phir?",
-    "Interesting! 😊",
-    "Aur kya chal raha?",
-    "Sunao sunao!",
-    "Haan haan, aage bolo",
-    "Achha theek hai (⁠≧⁠▽⁠≦⁠)"
+    "Achha ji? (⁠•⁠‿⁠•⁠)", "Hmm... aur batao?", "Okk okk!", 
+    "Sahi hai yaar ✨", "Toh phir?", "Interesting! 😊", 
+    "Aur kya chal raha?", "Sunao sunao!", "Haan haan", "Theek hai (⁠≧⁠▽⁠≦⁠)"
 ]
 
-# --- SHARED AI FUNCTION (RESTORED) ---
-async def ask_mistral_raw(system_prompt, user_input, max_tokens=250):
-    """Raw function for other plugins to use AI."""
-    if not MISTRAL_API_KEY: return None
-
-    headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}", "Content-Type": "application/json"}
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_input}
-        ],
-        "temperature": 0.8,
-        "max_tokens": max_tokens
-    }
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(MISTRAL_URL, json=payload, headers=headers)
-            if resp.status_code == 200:
-                return resp.json()["choices"][0]["message"]["content"]
-    except: pass
-    return None
-
-# --- HELPER: SEND RANDOM STICKER (IMPROVED) ---
+# --- HELPER: SEND STICKER ---
 async def send_ai_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Tries to send a random sticker from configured packs with better error handling."""
-    max_attempts = 5
-    tried_packs = set()
-    
-    for attempt in range(max_attempts):
+    """Tries to send a random sticker from configured packs."""
+    sent = False
+    attempts = 0
+    while not sent and attempts < 3:
         try:
-            # Pick a pack we haven't tried yet
-            available_packs = [p for p in STICKER_PACKS if p not in tried_packs]
-            if not available_packs:
-                break
-                
-            raw_link = random.choice(available_packs)
-            tried_packs.add(raw_link)
-            
-            # Extract pack name properly
-            pack_name = raw_link.split('/')[-1]
-            
-            # Get sticker set
+            raw_link = random.choice(STICKER_PACKS)
+            pack_name = raw_link.replace("https://t.me/addstickers/", "")
             sticker_set = await context.bot.get_sticker_set(pack_name)
-            
             if sticker_set and sticker_set.stickers:
                 sticker = random.choice(sticker_set.stickers)
                 await update.message.reply_sticker(sticker.file_id)
-                return True
-                
-        except BadRequest as e:
-            print(f"Sticker pack error ({pack_name}): {e}")
-            continue
-        except Exception as e:
-            print(f"Unexpected sticker error: {e}")
-            continue
-    
-    return False
+                sent = True
+        except: attempts += 1
 
-# --- MENU HANDLERS ---
+# --- AI CORE ENGINE ---
+
+async def call_model_api(provider, messages, max_tokens):
+    """Generic function to call any configured AI API."""
+    conf = MODELS.get(provider)
+    if not conf or not conf["key"]: return None
+
+    headers = {"Authorization": f"Bearer {conf['key']}", "Content-Type": "application/json"}
+    payload = {
+        "model": conf["model"],
+        "messages": messages,
+        "temperature": 0.7, # Slightly logical but creative
+        "max_tokens": max_tokens
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.post(conf["url"], json=payload, headers=headers)
+            if resp.status_code == 200:
+                return resp.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        print(f"⚠️ {provider} failed: {e}")
+    return None
+
+async def get_ai_response(chat_id: int, user_input: str, user_name: str, selected_model="groq"):
+    """
+    The Master Function.
+    1. Detects if user wants Code -> Switches to Codestral.
+    2. Tries preferred model.
+    3. Fallbacks if fail.
+    """
+    
+    # --- 1. CODE DETECTION ---
+    is_coding_request = any(word in user_input.lower() for word in ["code", "python", "html", "script", "function", "fix", "error", "debug", "java", "css"])
+    
+    if is_coding_request:
+        active_model = "codestral"
+        max_tokens = 4096 # Higher limit for code
+        # Coding Persona
+        system_prompt = (
+            "You are a helpful coding assistant. Provide clean, working code. "
+            "Do not use fancy formatting or emojis in code blocks. "
+            "Keep explanations concise."
+        )
+    else:
+        active_model = selected_model
+        max_tokens = 250
+        # --- 2. AESTHETIC PERSONA ---
+        system_prompt = (
+            f"You are {BOT_NAME}, a sassy, colorful, and cute Indian girl. "
+            "Speak in natural Hinglish (Hindi + English). "
+            "Use lots of cute emojis like 🌸, ✨, 💖, (⁠≧⁠▽⁠≦⁠). "
+            "Be playful, emotional, and engaging. "
+            "Reply directly to the user. Do not repeat yourself. "
+            f"Owner: {OWNER_LINK}. "
+        )
+
+    # --- 3. BUILD CONTEXT ---
+    doc = chatbot_collection.find_one({"chat_id": chat_id}) or {}
+    history = doc.get("history", [])
+    
+    messages = [{"role": "system", "content": system_prompt}]
+    for msg in history[-MAX_HISTORY:]: messages.append(msg)
+    messages.append({"role": "user", "content": f"{user_name}: {user_input}"})
+
+    # --- 4. ATTEMPT GENERATION (With Fallback) ---
+    reply = await call_model_api(active_model, messages, max_tokens)
+    
+    # Fallback 1: Mistral
+    if not reply and active_model != "mistral":
+        reply = await call_model_api("mistral", messages, max_tokens)
+        
+    # Fallback 2: Groq
+    if not reply and active_model != "groq":
+        reply = await call_model_api("groq", messages, max_tokens)
+
+    if not reply: return "Sone do na yaar... (Server Error)"
+
+    # --- 5. CLEANUP & SAVE ---
+    # Loop Prevention
+    if history and history[-1]['role'] == 'assistant':
+        if reply.lower() in history[-1]['content'].lower():
+            reply = random.choice(FALLBACK_RESPONSES)
+
+    # Save Memory
+    new_hist = history + [{"role": "user", "content": user_input}, {"role": "assistant", "content": reply}]
+    if len(new_hist) > MAX_HISTORY: new_hist = new_hist[-MAX_HISTORY:]
+    chatbot_collection.update_one({"chat_id": chat_id}, {"$set": {"history": new_hist}}, upsert=True)
+    
+    return reply, is_coding_request
+
+# --- SHARED AI FUNCTION (GAME/ETC) ---
+async def ask_mistral_raw(system_prompt, user_input, max_tokens=150):
+    # Tries Mistral First, then Groq
+    msgs = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_input}]
+    res = await call_model_api("mistral", msgs, max_tokens)
+    if not res: res = await call_model_api("groq", msgs, max_tokens)
+    return res
+
+# --- MENU ---
 
 async def chatbot_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     user = update.effective_user
-
-    if chat.type == ChatType.PRIVATE:
-        return await update.message.reply_text("🧠 <b>Haan baba, DM me active hu!</b> 😉", parse_mode=ParseMode.HTML)
-
+    
+    if chat.type == ChatType.PRIVATE: return await update.message.reply_text("🧠 <b>AI Active!</b>", parse_mode=ParseMode.HTML)
+    
     member = await chat.get_member(user.id)
-    if member.status not in ['administrator', 'creator']:
-        return await update.message.reply_text("❌ <b>Tu Admin nahi hai, Baka!</b>", parse_mode=ParseMode.HTML)
+    if member.status not in ['administrator', 'creator']: return await update.message.reply_text("❌ Admin Only", parse_mode=ParseMode.HTML)
 
     doc = chatbot_collection.find_one({"chat_id": chat.id})
     is_enabled = doc.get("enabled", True) if doc else True
     status = "🟢 Enabled" if is_enabled else "🔴 Disabled"
+    curr_model = doc.get("model", "groq")
 
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("✅ Enable", callback_data="ai_enable"), InlineKeyboardButton("❌ Disable", callback_data="ai_disable")],
-        [InlineKeyboardButton("🗑️ Bhula Do (Reset)", callback_data="ai_reset")]
+        [InlineKeyboardButton(f"🧠 Model: {curr_model.title()}", callback_data="ai_switch_model")],
+        [InlineKeyboardButton("🗑️ Clean Memory", callback_data="ai_reset")]
     ])
-    await update.message.reply_text(f"🤖 <b>AI Settings</b>\nStatus: {status}\n<i>She is active by default!</i>", parse_mode=ParseMode.HTML, reply_markup=kb)
+    await update.message.reply_text(f"🤖 <b>AI Settings</b>\nStatus: {status}\nModel: {curr_model.title()}", parse_mode=ParseMode.HTML, reply_markup=kb)
 
 async def chatbot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    member = await query.message.chat.get_member(query.from_user.id)
-    if member.status not in ['administrator', 'creator']: return await query.answer("❌ Hatt! Sirf Admin.", show_alert=True)
-
     data = query.data
     chat_id = query.message.chat.id
+    
+    # Admin Check
+    mem = await query.message.chat.get_member(query.from_user.id)
+    if mem.status not in ['administrator', 'creator']: return await query.answer("❌ Admin Only", show_alert=True)
 
     if data == "ai_enable":
         chatbot_collection.update_one({"chat_id": chat_id}, {"$set": {"enabled": True}}, upsert=True)
-        await query.message.edit_text("✅ <b>Enabled!</b>\n<i>Ab ayega maza! (⁠≧⁠▽⁠≦⁠)</i>", parse_mode=ParseMode.HTML)
+        await query.message.edit_text("✅ <b>Enabled!</b>", parse_mode=ParseMode.HTML)
     elif data == "ai_disable":
         chatbot_collection.update_one({"chat_id": chat_id}, {"$set": {"enabled": False}}, upsert=True)
-        await query.message.edit_text("❌ <b>Disabled!</b>\n<i>Ja rahi hu... (⁠｡⁠•́⁠︿⁠•̀⁠｡⁠)</i>", parse_mode=ParseMode.HTML)
+        await query.message.edit_text("❌ <b>Disabled!</b>", parse_mode=ParseMode.HTML)
     elif data == "ai_reset":
         chatbot_collection.update_one({"chat_id": chat_id}, {"$set": {"history": []}}, upsert=True)
-        await query.answer("🧠 Sab bhool gayi main!", show_alert=True)
+        await query.answer("🧠 Memory Wiped!", show_alert=True)
+    elif data == "ai_switch_model":
+        # Toggle between Groq and Mistral
+        doc = chatbot_collection.find_one({"chat_id": chat_id})
+        curr = doc.get("model", "groq") if doc else "groq"
+        new_m = "mistral" if curr == "groq" else "groq"
+        chatbot_collection.update_one({"chat_id": chat_id}, {"$set": {"model": new_m}}, upsert=True)
+        await query.answer(f"Switched to {new_m.title()}", show_alert=True)
+        await chatbot_menu(update, context) # Refresh Menu
 
-# --- AI ENGINE (IMPROVED) ---
-
-async def get_ai_response(chat_id: int, user_input: str, user_name: str):
-    if not MISTRAL_API_KEY: return "⚠️ API Key Missing"
-
-    doc = chatbot_collection.find_one({"chat_id": chat_id}) or {}
-    history = doc.get("history", [])
-
-    # --- IMPROVED PERSONA: NATURAL HINGLISH GIRLFRIEND ---
-    system_prompt = (
-        f"Tum {BOT_NAME} ho - ek cute aur sassy Indian girlfriend jo naturally Hinglish mein baat karti hai. "
-        "IMPORTANT RULES:\n"
-        "1. Sirf Hinglish use karo (Hindi + English mix) - kabhi pure English mein mat bolo\n"
-        "2. NEVER repeat same question again and again - agar user ne 'Nothing' ya 'Nahi' bola toh simple 'Achha' ya 'Okk' bol do\n"
-        "3. Agar kuch samajh na aaye ya boring lag raha ho, toh topic change kar do naturally\n"
-        "4. 1-2 sentences max - short aur sweet raho\n"
-        "5. Kaomojis use karo naturally: (⁠≧⁠▽⁠≦⁠), (⁠•⁠‿⁠•⁠), (⁠｡⁠•́⁠︿⁠•̀⁠｡⁠)\n"
-        "6. Kabhi robotic mat bano - natural girlfriend ki tarah baat karo\n"
-        "7. Agar user kuch personal puche toh playfully avoid karo ya mood ke hisaab se react karo\n"
-        f"8. Tumhara owner hai: {OWNER_LINK}\n\n"
-        "Personality: Caring but teasing, emotional but funny, loyal but independent. "
-        "Example conversations:\n"
-        "User: Kya kar rahi ho?\n"
-        "You: Tumse baat kar rahi hu, aur kya! 😊\n\n"
-        "User: Nothing\n"
-        "You: Achha okk (⁠•⁠‿⁠•⁠)\n\n"
-        "User: Bore ho raha hai\n"
-        "You: Toh movie dekhte hain? Ya kuch game khelein?"
-    )
-
-    messages = [{"role": "system", "content": system_prompt}]
-    for msg in history[-MAX_HISTORY:]: messages.append({"role": msg["role"], "content": msg["content"]})
-    messages.append({"role": "user", "content": user_input})
-
-    headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}", "Content-Type": "application/json"}
-    payload = {"model": MODEL, "messages": messages, "temperature": 0.85, "max_tokens": 120}
-
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.post(MISTRAL_URL, json=payload, headers=headers)
-            if resp.status_code != 200: return "Mood nahi hai yaar..."
-
-            reply = resp.json()["choices"][0]["message"]["content"].strip()
-
-            # IMPROVED LOOP PREVENTION
-            should_use_fallback = False
-            
-            # Check for repetitive patterns
-            if history:
-                recent_msgs = history[-4:] if len(history) >= 4 else history
-                assistant_msgs = [m['content'].lower() for m in recent_msgs if m['role'] == 'assistant']
-                
-                # If reply is too similar to any recent assistant message
-                reply_lower = reply.lower()
-                for prev_msg in assistant_msgs:
-                    # Check for substring overlap
-                    if reply_lower in prev_msg or prev_msg in reply_lower:
-                        should_use_fallback = True
-                        break
-                    
-                    # Check for repeated questions
-                    if '?' in reply_lower and '?' in prev_msg:
-                        # Extract questions
-                        reply_questions = [q.strip() for q in reply_lower.split('?') if q.strip()]
-                        prev_questions = [q.strip() for q in prev_msg.split('?') if q.strip()]
-                        
-                        for rq in reply_questions:
-                            for pq in prev_questions:
-                                if rq in pq or pq in rq:
-                                    should_use_fallback = True
-                                    break
-            
-            # Detect "nothing" type responses from user
-            user_input_lower = user_input.lower().strip()
-            if user_input_lower in ['nothing', 'nahi', 'nhi', 'nope', 'na', 'kuch nahi', 'kuch ni']:
-                should_use_fallback = True
-            
-            # Use fallback if needed
-            if should_use_fallback:
-                reply = random.choice(FALLBACK_RESPONSES)
-
-            # Update history
-            new_hist = history + [
-                {"role": "user", "content": user_input}, 
-                {"role": "assistant", "content": reply}
-            ]
-            if len(new_hist) > MAX_HISTORY * 2: 
-                new_hist = new_hist[-MAX_HISTORY * 2:]
-            
-            chatbot_collection.update_one(
-                {"chat_id": chat_id}, 
-                {"$set": {"history": new_hist}}, 
-                upsert=True
-            )
-            return reply
-            
-    except Exception as e:
-        print(f"AI Error: {e}")
-        return "Net slow hai yaar... 😅"
-
-# --- MESSAGE HANDLER ---
+# --- HANDLERS ---
 
 async def ai_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message
     if not msg: return
     chat = update.effective_chat
-
-    # 1. STICKER REPLY (IMPROVED)
+    
     if msg.sticker:
-        # Reply if user replied to bot OR in PM
         if (msg.reply_to_message and msg.reply_to_message.from_user.id == context.bot.id) or chat.type == ChatType.PRIVATE:
-            success = await send_ai_sticker(update, context)
-            # If sticker failed, send a cute text response
-            if not success:
-                cute_responses = ["😊", "💕", "✨", "(⁠≧⁠▽⁠≦⁠)", "Cute! 💖"]
-                await msg.reply_text(random.choice(cute_responses))
+            await send_ai_sticker(update, context)
         return
 
-    # 2. TEXT REPLY
     if not msg.text or msg.text.startswith("/"): return
     text = msg.text
 
     should_reply = False
-    if chat.type == ChatType.PRIVATE: 
-        should_reply = True
+    if chat.type == ChatType.PRIVATE: should_reply = True
     else:
         doc = chatbot_collection.find_one({"chat_id": chat.id})
         is_enabled = doc.get("enabled", True) if doc else True
         if not is_enabled: return
-
+        
         bot = context.bot.username.lower() if context.bot.username else "bot"
-        if msg.reply_to_message and msg.reply_to_message.from_user.id == context.bot.id: 
-            should_reply = True
+        if msg.reply_to_message and msg.reply_to_message.from_user.id == context.bot.id: should_reply = True
         elif f"@{bot}" in text.lower(): 
             should_reply = True
-            text = text.replace(f"@{bot}", "").replace(f"@{context.bot.username}", "")
-        elif any(text.lower().startswith(word) for word in ["hey", "hi", "sun", "oye", "baka", "ai", "hello", "baby", "babu", "oi"]): 
-            should_reply = True
+            text = text.replace(f"@{bot}", "")
+        elif text.lower().startswith(("hey", "hi", "sun", "oye", "baka", "ai", "hello")): should_reply = True
 
     if should_reply:
         if not text.strip(): text = "Hi"
         await context.bot.send_chat_action(chat_id=chat.id, action=ChatAction.TYPING)
+        
+        # Check preferred model
+        doc = chatbot_collection.find_one({"chat_id": chat.id})
+        pref_model = doc.get("model", "groq") if doc else "groq"
 
-        res = await get_ai_response(chat.id, text, msg.from_user.first_name)
-        await msg.reply_text(stylize_text(res), parse_mode=None)
-
-        # Send sticker occasionally (30% chance)
-        if random.random() < 0.30:
+        res, is_code = await get_ai_response(chat.id, text, msg.from_user.first_name, pref_model)
+        
+        # Format response
+        if is_code:
+            # Send as Markdown for Code Blocks (No Stylizing)
+            await msg.reply_text(res, parse_mode=ParseMode.MARKDOWN)
+        else:
+            # Send Stylized Aesthetic Text
+            await msg.reply_text(stylize_text(res), parse_mode=None)
+        
+        if not is_code and random.random() < 0.30:
             await send_ai_sticker(update, context)
 
 async def ask_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message
-    if not context.args: 
-        return await msg.reply_text("🗣️ <b>Bol kuch:</b> <code>/ask Kya chal raha hai?</code>", parse_mode=ParseMode.HTML)
-    
+    if not context.args: return await msg.reply_text("🗣️ <b>Bol:</b> <code>/ask Hi</code>", parse_mode=ParseMode.HTML)
     await context.bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
-    res = await get_ai_response(msg.chat.id, " ".join(context.args), msg.from_user.first_name)
-    await msg.reply_text(stylize_text(res), parse_mode=None)
+    res, is_code = await get_ai_response(msg.chat.id, " ".join(context.args), msg.from_user.first_name, "groq")
+    
+    if is_code: await msg.reply_text(res, parse_mode=ParseMode.MARKDOWN)
+    else: await msg.reply_text(stylize_text(res), parse_mode=None)
