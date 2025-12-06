@@ -28,23 +28,45 @@ from baka.utils import ensure_user_exists, get_mention, track_group, log_to_chan
 
 SUDO_IMG = "https://files.catbox.moe/gyi5iu.jpg"
 
+# --- 🌸 AESTHETIC KEYBOARDS ---
 def get_start_keyboard(bot_username):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 𝐔𝐩𝐝𝐚𝐭𝐞𝐬", url=SUPPORT_CHANNEL), InlineKeyboardButton("💬 𝐒𝐮𝐩𝐩𝐨𝐫𝐭", url=SUPPORT_GROUP)],
-        [InlineKeyboardButton("➕ 𝐀𝐝𝐝 𝐌𝐞 𝐁𝐚𝐛𝐲 ➕", url=f"https://t.me/{bot_username}?startgroup=true")],
-        [InlineKeyboardButton("🏩 ϻєηυ", callback_data="help_main"), InlineKeyboardButton("👑 σᴡηєꝛ", url=OWNER_LINK)]
+        [
+            InlineKeyboardButton(f"🎐 {stylize_text('Updates')}", url=SUPPORT_CHANNEL),
+            InlineKeyboardButton(f"☁️ {stylize_text('Support')}", url=SUPPORT_GROUP)
+        ],
+        [
+            InlineKeyboardButton(f"➕ {stylize_text('Add Me Baby')} ➕", url=f"https://t.me/{bot_username}?startgroup=true")
+        ],
+        [
+            InlineKeyboardButton(f"📖 {stylize_text('Diary')}", callback_data="help_main"),
+            InlineKeyboardButton(f"👑 {stylize_text('Owner')}", url=OWNER_LINK)
+        ]
     ])
 
 def get_help_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("💞 sσᴄɪᴧʟ", callback_data="help_social"), InlineKeyboardButton("👛 Єᴄσησϻʏ", callback_data="help_economy")],
-        [InlineKeyboardButton("⚔️ Ꝛᴘɢ & ᴡᴧꝛ", callback_data="help_rpg"), InlineKeyboardButton("🧠 ᴧɪ & Ғυη", callback_data="help_fun")],
-        [InlineKeyboardButton("⛩️ ɢꝛσυᴘ", callback_data="help_group"), InlineKeyboardButton("🔐 sυᴅσ", callback_data="help_sudo")],
-        [InlineKeyboardButton("🔙 ʙᴧᴄᴋ", callback_data="return_start")]
+        [
+            InlineKeyboardButton(f"💞 {stylize_text('Social')}", callback_data="help_social"),
+            InlineKeyboardButton(f"👛 {stylize_text('Economy')}", callback_data="help_economy")
+        ],
+        [
+            InlineKeyboardButton(f"⚔️ {stylize_text('RPG & War')}", callback_data="help_rpg"),
+            InlineKeyboardButton(f"🍥 {stylize_text('AI & Fun')}", callback_data="help_fun")
+        ],
+        [
+            InlineKeyboardButton(f"⛩️ {stylize_text('Group')}", callback_data="help_group"),
+            InlineKeyboardButton(f"🔐 {stylize_text('Sudo')}", callback_data="help_sudo")
+        ],
+        [
+            InlineKeyboardButton(f"🔙 {stylize_text('Back')}", callback_data="return_start")
+        ]
     ])
 
 def get_back_keyboard():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 ʙᴧᴄᴋ", callback_data="help_main")]])
+    return InlineKeyboardMarkup([[InlineKeyboardButton(f"🔙 {stylize_text('Back')}", callback_data="help_main")]])
+
+# --- 🚀 COMMANDS ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -53,31 +75,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ensure_user_exists(user)
         track_group(chat, user)
         
-        # --- FIX: Original Name, Styled Greeting ---
-        user_link = get_mention(user) # Returns formatted HTML link with original name
+        user_link = get_mention(user)
         
+        # --- THE ULTRA AESTHETIC CAPTION ---
         caption = (
-            f"👋 {stylize_text('Konichiwa')} {user_link}! (⁠≧⁠▽⁠≦⁠)\n\n"
-            f"『 <b>{BOT_NAME}</b> 』\n"
-            f"<i>{stylize_text('The Aesthetic AI-Powered RPG Bot!')}</i> 🌸\n\n"
-            f"🎮 <b>{stylize_text('Features')}:</b>\n"
-            f"⊚  <b>Ꝛᴘɢ:</b> ᴋɪʟʟ, Ꝛσʙ (100%), ᴘꝛσᴛєᴄᴛ\n"
-            f"⊚  <b>sσᴄɪᴧʟ:</b> ϻᴧꝛꝛʏ, ᴄσυᴘʟє, ᴡᴧɪғυ\n"
-            f"➻  <b>Єᴄσησϻʏ:</b> ᴄʟᴧɪϻ, sʜσᴘ, ɢɪᴠє\n"
-            f"➻  <b>ᴧɪ:</b> sᴧssʏ ᴄʜᴧᴛʙσᴛ & ᴧꝛᴛ\n\n"
+            f"👋 {stylize_text('Konichiwa')} {user_link}! (⁠≧⁠▽⁠≦⁠)\n"
+            f"The {stylize_text('Aesthetic AI-Powered RPG Bot')}! 💞\n\n"
+            f"⊚  {stylize_text('Features')}:\n"
+            f"⊚  {stylize_text('RPG')}: {stylize_text('Kill, Rob (100%), Protect')}\n"
+            f"⊚  {stylize_text('Social')}: {stylize_text('Marry, Couple, Waifu')}\n"
+            f"➻  {stylize_text('Economy')}: {stylize_text('Claim, Give, Shop')}\n"
+            f"➻  {stylize_text('AI')}: {stylize_text('Sassy Chatbot & Art')}\n\n"
             f"✦ {stylize_text('Need Help?')}\n"
-            f"<i>{stylize_text('Click the buttons below!')}</i>"
+            f"{stylize_text('Click the buttons below!')}"
         )
 
         bot_un = context.bot.username if context.bot.username else "RyanBakaBot"
         kb = get_start_keyboard(bot_un)
 
-        # 1. Handle Callback (Back Button)
         if update.callback_query:
             try: await update.callback_query.message.edit_media(InputMediaPhoto(media=START_IMG_URL, caption=caption, parse_mode=ParseMode.HTML), reply_markup=kb)
             except: await update.callback_query.message.edit_caption(caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
-        
-        # 2. Handle Command (/start)
         else:
             if START_IMG_URL and START_IMG_URL.startswith("http"):
                 try: await update.message.reply_photo(photo=START_IMG_URL, caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
@@ -90,16 +108,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
     except Exception as e:
         print(f"Start Error: {e}")
-        # Last Resort Fallback
-        try: await update.message.reply_text(f"👋 <b>Hi {html.escape(user.first_name)}!</b>\nBot is online.", parse_mode=ParseMode.HTML)
-        except: pass
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_photo(
         photo=HELP_IMG_URL,
-        caption=f"📖 <b>{BOT_NAME} 𝐃𝐢𝐚𝐫𝐲</b> 🌸\n\n<i>{stylize_text('Select a category below:')}</i>",
+        caption=f"📖 <b>{BOT_NAME} {stylize_text('Diary')}</b> 🌸\n\n<i>{stylize_text('Select a category below:')}</i>",
         parse_mode=ParseMode.HTML, reply_markup=get_help_keyboard()
     )
+
+# --- 🖱️ CALLBACK HANDLER ---
 
 async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -110,8 +127,8 @@ async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data == "help_main":
-        try: await query.message.edit_media(InputMediaPhoto(media=HELP_IMG_URL, caption=f"📖 <b>{BOT_NAME} 𝐃𝐢𝐚𝐫𝐲</b> 🌸\n\n<i>{stylize_text('Select a category below:')}</i>", parse_mode=ParseMode.HTML), reply_markup=get_help_keyboard())
-        except: await query.message.edit_caption(caption=f"📖 <b>{BOT_NAME} 𝐃𝐢𝐚𝐫𝐲</b> 🌸\n\n<i>{stylize_text('Select a category below:')}</i>", parse_mode=ParseMode.HTML, reply_markup=get_help_keyboard())
+        try: await query.message.edit_media(InputMediaPhoto(media=HELP_IMG_URL, caption=f"📖 <b>{BOT_NAME} {stylize_text('Diary')}</b> 🌸\n\n<i>{stylize_text('Select a category below:')}</i>", parse_mode=ParseMode.HTML), reply_markup=get_help_keyboard())
+        except: await query.message.edit_caption(caption=f"📖 <b>{BOT_NAME} {stylize_text('Diary')}</b> 🌸\n\n<i>{stylize_text('Select a category below:')}</i>", parse_mode=ParseMode.HTML, reply_markup=get_help_keyboard())
         return
 
     target_photo = HELP_IMG_URL
